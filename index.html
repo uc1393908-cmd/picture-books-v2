@@ -23,7 +23,7 @@ button {
   cursor: pointer;
 }
 
-/* ===== 首頁 ===== */
+/* 首頁 */
 
 .home {
   min-height: 100vh;
@@ -60,7 +60,7 @@ button {
   margin: 0 auto;
 }
 
-/* ===== 繪本卡片 ===== */
+/* 繪本卡片 */
 
 .book-card {
   display: flex;
@@ -68,7 +68,6 @@ button {
   align-items: stretch;
   width: 280px;
   max-width: 100%;
-  height: auto;
   flex-shrink: 0;
   padding: 13px;
   background: #fff;
@@ -106,16 +105,12 @@ button {
 }
 
 .book-card h2 {
-  display: block;
-  flex: 0 0 auto;
   font-size: 19px;
   margin: 15px 0 5px;
   line-height: 1.5;
 }
 
 .book-card p {
-  display: block;
-  flex: 0 0 auto;
   color: #888;
   font-size: 13px;
   margin: 0 0 8px;
@@ -125,7 +120,6 @@ button {
 .open-btn {
   display: inline-block;
   align-self: center;
-  flex: 0 0 auto;
   background: #526d59;
   color: white;
   border-radius: 25px;
@@ -133,7 +127,7 @@ button {
   margin: 10px 0 5px;
 }
 
-/* ===== 閱讀畫面 ===== */
+/* 閱讀畫面 */
 
 .reader {
   display: none;
@@ -245,7 +239,7 @@ button {
   text-align: center;
 }
 
-/* ===== 手機版 ===== */
+/* 手機版 */
 
 @media (max-width: 600px) {
   .home {
@@ -259,11 +253,6 @@ button {
   .book-card {
     width: 100%;
     max-width: 340px;
-  }
-
-  .cover-frame {
-    width: 100%;
-    aspect-ratio: 1 / 1;
   }
 
   .reader {
@@ -285,6 +274,7 @@ button {
 <body>
 
 <!-- 首頁 -->
+
 <section class="home" id="home">
 
   <img class="logo" src="logo.png.png" alt="哇仔 LOGO">
@@ -324,7 +314,8 @@ button {
   </div>
 </section>
 
-<!-- 繪本閱讀畫面 -->
+<!-- 閱讀畫面 -->
+
 <section class="reader" id="reader">
 
   <div class="reader-top">
@@ -388,7 +379,7 @@ const pageInfo = document.getElementById("pageInfo");
 const bookTitle = document.getElementById("bookTitle");
 const message = document.getElementById("message");
 
-/* ===== 建立繪本頁面清單 ===== */
+/* 建立繪本頁面清單 */
 
 function makePages(folder) {
 
@@ -419,7 +410,7 @@ function makePages(folder) {
   return result;
 }
 
-/* ===== 判斷颱風篇封底靜音 ===== */
+/* 判斷颱風篇封底靜音 */
 
 function isSilentPage(bookKey, page) {
   return (
@@ -428,7 +419,7 @@ function isSilentPage(bookKey, page) {
   );
 }
 
-/* ===== 預載影片 ===== */
+/* 預載影片 */
 
 function prepareVideo(src, silent = false) {
 
@@ -442,10 +433,7 @@ function prepareVideo(src, silent = false) {
   video.playsInline = true;
   video.setAttribute("playsinline", "");
   video.controls = false;
-
-  /* 影片循環播放 */
   video.loop = true;
-
   video.muted = silent;
   video.defaultMuted = silent;
   video.volume = silent ? 0 : 1;
@@ -492,7 +480,7 @@ function prepareVideo(src, silent = false) {
   return promise;
 }
 
-/* ===== 預載圖片 ===== */
+/* 預載圖片 */
 
 function prepareImage(src) {
 
@@ -516,7 +504,7 @@ function prepareImage(src) {
   return promise;
 }
 
-/* ===== 首頁預載封面 ===== */
+/* 首頁預載封面 */
 
 function preloadHomeCovers() {
 
@@ -529,7 +517,7 @@ function preloadHomeCovers() {
 
 }
 
-/* ===== 預載前後頁 ===== */
+/* 預載前後頁 */
 
 function preloadNearbyPages(index) {
 
@@ -561,9 +549,9 @@ function preloadNearbyPages(index) {
 
 }
 
-/* ===== 開啟繪本：先顯示靜態封面 ===== */
+/* 開啟繪本：先顯示靜態封面 */
 
-async function openBook(bookKey) {
+function openBook(bookKey) {
 
   currentBookKey = bookKey;
   currentBook = books[bookKey];
@@ -581,7 +569,6 @@ async function openBook(bookKey) {
 
   media.innerHTML = "";
 
-  /* 先用 JPG 當作封面，避免黑屏 */
   const coverImage = document.createElement("img");
 
   coverImage.src = `${currentBook.folder}/cover.jpg.jpg`;
@@ -594,11 +581,46 @@ async function openBook(bookKey) {
 
   message.style.display = "none";
 
-  /* 背景載入封面影片 */
   renderPage(0);
 }
 
-/* ===== 顯示頁面 ===== */
+/* 播放影片：確保持續循環 */
+
+function startLoopVideo(video, silent) {
+
+  video.pause();
+
+  video.loop = true;
+  video.muted = silent;
+  video.defaultMuted = silent;
+  video.volume = silent ? 0 : 1;
+
+  if (silent) {
+    video.setAttribute("muted", "");
+  } else {
+    video.removeAttribute("muted");
+  }
+
+  video.currentTime = 0;
+
+  /* 播放結束時再強制從頭播放 */
+  video.onended = () => {
+
+    video.currentTime = 0;
+
+    video.play().catch((error) => {
+      console.log("影片循環播放受到瀏覽器限制：", error);
+    });
+
+  };
+
+  video.play().catch(() => {
+    showMessage("如果影片沒有自動播放，請點擊影片");
+  });
+
+}
+
+/* 顯示頁面 */
 
 async function renderPage(index) {
 
@@ -626,7 +648,6 @@ async function renderPage(index) {
 
     }
 
-    /* 如果等待時又翻頁，取消舊請求 */
     if (myToken !== renderToken) {
       return;
     }
@@ -635,27 +656,16 @@ async function renderPage(index) {
 
     if (oldVideo) {
       oldVideo.pause();
+      oldVideo.onended = null;
     }
 
-    /* 新頁面準備完成後才切換 */
     media.innerHTML = "";
 
     if (page.type === "video") {
 
       const silent = isSilentPage(currentBookKey, page);
 
-      newElement.muted = silent;
-      newElement.defaultMuted = silent;
-      newElement.volume = silent ? 0 : 1;
-
-      if (silent) {
-        newElement.setAttribute("muted", "");
-      } else {
-        newElement.removeAttribute("muted");
-      }
-
       newElement.loop = true;
-      newElement.currentTime = 0;
       newElement.autoplay = true;
       newElement.playsInline = true;
 
@@ -675,9 +685,7 @@ async function renderPage(index) {
 
       media.appendChild(newElement);
 
-      newElement.play().catch(() => {
-        showMessage("如果影片沒有自動播放，請點擊影片");
-      });
+      startLoopVideo(newElement, silent);
 
     } else {
 
@@ -708,14 +716,14 @@ async function renderPage(index) {
 
 }
 
-/* ===== 顯示提示 ===== */
+/* 顯示提示 */
 
 function showMessage(text) {
   message.textContent = text;
   message.style.display = "block";
 }
 
-/* ===== 左右翻頁 ===== */
+/* 左右翻頁 */
 
 function changePage(direction) {
 
@@ -730,7 +738,7 @@ function changePage(direction) {
   renderPage(next);
 }
 
-/* ===== 返回首頁 ===== */
+/* 返回首頁 */
 
 function goHome() {
 
@@ -740,6 +748,7 @@ function goHome() {
 
   if (video) {
     video.pause();
+    video.onended = null;
   }
 
   media.innerHTML = "";
@@ -755,7 +764,7 @@ function goHome() {
 
 }
 
-/* ===== 全螢幕 ===== */
+/* 全螢幕 */
 
 async function toggleFullscreen() {
 
@@ -773,7 +782,7 @@ async function toggleFullscreen() {
 
 }
 
-/* ===== 手機左右滑動翻頁 ===== */
+/* 手機左右滑動翻頁 */
 
 let touchStartX = 0;
 let touchStartY = 0;
@@ -802,7 +811,7 @@ stage.addEventListener("touchend", (event) => {
 
 }, { passive: true });
 
-/* ===== 電腦鍵盤左右鍵翻頁 ===== */
+/* 電腦鍵盤左右鍵翻頁 */
 
 document.addEventListener("keydown", (event) => {
 
@@ -825,7 +834,7 @@ document.addEventListener("keydown", (event) => {
 
 });
 
-/* ===== 網站載入後，預載三本封面 ===== */
+/* 網站載入後預載三本封面 */
 
 preloadHomeCovers();
 
