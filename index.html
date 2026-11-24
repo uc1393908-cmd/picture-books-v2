@@ -245,37 +245,6 @@ button {
   text-align: center;
 }
 
-/* 載入提示 */
-
-.loading {
-  position: absolute;
-  z-index: 4;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 12px;
-  background: #202521;
-  color: white;
-  font-size: 14px;
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #ffffff40;
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* ===== 手機版 ===== */
 
 @media (max-width: 600px) {
@@ -378,11 +347,6 @@ button {
 
     <div class="message" id="message"></div>
 
-    <div class="loading" id="loading">
-      <div class="loading-spinner"></div>
-      <span>繪本載入中，請稍候...</span>
-    </div>
-
   </div>
 
   <div class="page-info" id="pageInfo"></div>
@@ -423,7 +387,6 @@ const stage = document.getElementById("stage");
 const pageInfo = document.getElementById("pageInfo");
 const bookTitle = document.getElementById("bookTitle");
 const message = document.getElementById("message");
-const loading = document.getElementById("loading");
 
 /* ===== 建立繪本頁面清單 ===== */
 
@@ -456,7 +419,7 @@ function makePages(folder) {
   return result;
 }
 
-/* ===== 判斷是否為颱風篇封底 ===== */
+/* ===== 判斷颱風篇封底靜音 ===== */
 
 function isSilentPage(bookKey, page) {
   return (
@@ -465,7 +428,7 @@ function isSilentPage(bookKey, page) {
   );
 }
 
-/* ===== 預先準備影片 ===== */
+/* ===== 預載影片 ===== */
 
 function prepareVideo(src, silent = false) {
 
@@ -491,11 +454,6 @@ function prepareVideo(src, silent = false) {
 
   const promise = new Promise((resolve, reject) => {
 
-    if (video.readyState >= 2) {
-      resolve(video);
-      return;
-    }
-
     const onReady = () => {
       cleanup();
       resolve(video);
@@ -510,6 +468,11 @@ function prepareVideo(src, silent = false) {
       video.removeEventListener("loadeddata", onReady);
       video.removeEventListener("error", onError);
     };
+
+    if (video.readyState >= 2) {
+      resolve(video);
+      return;
+    }
 
     video.addEventListener("loadeddata", onReady);
     video.addEventListener("error", onError);
@@ -527,7 +490,7 @@ function prepareVideo(src, silent = false) {
   return promise;
 }
 
-/* ===== 預先準備圖片 ===== */
+/* ===== 預載圖片 ===== */
 
 function prepareImage(src) {
 
@@ -551,7 +514,7 @@ function prepareImage(src) {
   return promise;
 }
 
-/* ===== 首頁預載三本封面 ===== */
+/* ===== 首頁預載封面 ===== */
 
 function preloadHomeCovers() {
 
@@ -564,16 +527,11 @@ function preloadHomeCovers() {
 
 }
 
-/* ===== 預載目前頁面的前後頁 ===== */
+/* ===== 預載前後頁 ===== */
 
 function preloadNearbyPages(index) {
 
-  const nearbyIndexes = [
-    index - 1,
-    index + 1
-  ];
-
-  nearbyIndexes.forEach((nearbyIndex) => {
+  [index - 1, index + 1].forEach((nearbyIndex) => {
 
     if (
       nearbyIndex < 0 ||
@@ -601,9 +559,9 @@ function preloadNearbyPages(index) {
 
 }
 
-/* ===== 開啟繪本 ===== */
+/* ===== 開啟繪本：先顯示靜態封面 ===== */
 
-function openBook(bookKey) {
+async function openBook(bookKey) {
 
   currentBookKey = bookKey;
   currentBook = books[bookKey];
@@ -620,10 +578,21 @@ function openBook(bookKey) {
   bookTitle.textContent = currentBook.title;
 
   media.innerHTML = "";
-  loading.style.display = "flex";
 
-  pageInfo.textContent = "";
+  /* 先用 JPG 當作封面，避免黑屏 */
+  const coverImage = document.createElement("img");
 
+  coverImage.src = `${currentBook.folder}/cover.jpg.jpg`;
+  coverImage.alt = "繪本封面";
+
+  media.appendChild(coverImage);
+
+  pageInfo.textContent =
+    `第 1 / ${pages.length} 頁`;
+
+  message.style.display = "none";
+
+  /* 背景載入封面影片 */
   renderPage(0);
 }
 
@@ -637,7 +606,6 @@ async function renderPage(index) {
   if (!page) return;
 
   message.style.display = "none";
-  loading.style.display = "flex";
 
   try {
 
@@ -645,51 +613,33 @@ async function renderPage(index) {
 
     if (page.type === "video") {
 
-      const video = await prepareVideo(
+      newElement = await prepareVideo(
         page.src,
         isSilentPage(currentBookKey, page)
       );
 
-      newElement = video;
-
     } else {
 
-      const img = await prepareImage(page.src);
-
-      newElement = img;
+      newElement = await prepareImage(page.src);
 
     }
 
-    /* 如果等待期間使用者又翻頁，就不顯示舊請求 */
+    /* 如果等待時又翻頁，取消舊請求 */
     if (myToken !== renderToken) {
       return;
     }
 
-    /* 保留上一頁直到新頁面準備完成 */
     const oldVideo = media.querySelector("video");
 
     if (oldVideo) {
-
       oldVideo.pause();
-
-      /* 把上一頁影片放回快取 */
-      const oldSrc = oldVideo.getAttribute("src");
-
-      if (oldSrc) {
-        videoCache.set(oldSrc, {
-          video: oldVideo,
-          promise: Promise.resolve(oldVideo)
-        });
-      }
-
     }
 
-    /* 切換畫面 */
+    /* 新頁面準備完成後才切換 */
     media.innerHTML = "";
 
     if (page.type === "video") {
 
-      /* 重新確認颱風篇封底靜音 */
       const silent = isSilentPage(currentBookKey, page);
 
       newElement.muted = silent;
@@ -703,6 +653,23 @@ async function renderPage(index) {
       }
 
       newElement.currentTime = 0;
+      newElement.autoplay = true;
+      newElement.playsInline = true;
+      newElement.loop = false;
+
+      newElement.onclick = (event) => {
+
+        event.stopPropagation();
+
+        if (newElement.paused) {
+          newElement.play().catch(() => {
+            showMessage("影片無法播放，請再點一次");
+          });
+        } else {
+          newElement.pause();
+        }
+
+      };
 
       media.appendChild(newElement);
 
@@ -723,16 +690,12 @@ async function renderPage(index) {
     pageInfo.textContent =
       `第 ${currentPage + 1} / ${pages.length} 頁`;
 
-    loading.style.display = "none";
-
-    /* 背景預載前後頁 */
     preloadNearbyPages(currentPage);
 
   } catch (error) {
 
     if (myToken !== renderToken) return;
 
-    loading.style.display = "none";
     requestedPage = currentPage;
 
     showMessage("載入失敗，請檢查網路或檔案名稱");
@@ -760,10 +723,6 @@ function changePage(direction) {
     return;
   }
 
-  if (next === requestedPage) {
-    return;
-  }
-
   requestedPage = next;
 
   renderPage(next);
@@ -782,9 +741,6 @@ function goHome() {
   }
 
   media.innerHTML = "";
-
-  loading.style.display = "none";
-  message.style.display = "none";
 
   reader.style.display = "none";
   home.style.display = "block";
@@ -839,9 +795,7 @@ stage.addEventListener("touchend", (event) => {
     Math.abs(diffX) > 50 &&
     Math.abs(diffX) > Math.abs(diffY)
   ) {
-
     changePage(diffX < 0 ? 1 : -1);
-
   }
 
 }, { passive: true });
@@ -869,7 +823,7 @@ document.addEventListener("keydown", (event) => {
 
 });
 
-/* ===== 網站開啟後，預載三本封面 ===== */
+/* ===== 網站載入後，預載三本封面 ===== */
 
 preloadHomeCovers();
 
