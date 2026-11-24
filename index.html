@@ -72,12 +72,12 @@ button {
 }
 
 .book-card img {
+  display: block;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 254px;
   object-fit: contain;
   background: #f8f5ed;
   border-radius: 12px;
-  display: block;
 }
 
 .book-card h2 {
@@ -194,6 +194,10 @@ button {
 }
 
 @media (max-width: 600px) {
+  .book-card img {
+    height: min(314px, calc(100vw - 66px));
+  }
+
   .home {
     padding-top: 25px;
   }
