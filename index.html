@@ -442,7 +442,9 @@ function prepareVideo(src, silent = false) {
   video.playsInline = true;
   video.setAttribute("playsinline", "");
   video.controls = false;
-  video.loop = false;
+
+  /* 影片循環播放 */
+  video.loop = true;
 
   video.muted = silent;
   video.defaultMuted = silent;
@@ -652,10 +654,10 @@ async function renderPage(index) {
         newElement.removeAttribute("muted");
       }
 
+      newElement.loop = true;
       newElement.currentTime = 0;
       newElement.autoplay = true;
       newElement.playsInline = true;
-      newElement.loop = false;
 
       newElement.onclick = (event) => {
 
