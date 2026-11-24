@@ -291,7 +291,6 @@ button {
 
   <div class="books">
 
-    <!-- 地震篇 -->
     <button class="book-card" onclick="openBook('earthquake')">
       <div class="cover-frame">
         <img src="earthquake/cover.jpg.jpg" alt="地震篇封面">
@@ -301,7 +300,6 @@ button {
       <span class="open-btn">開始閱讀</span>
     </button>
 
-    <!-- 火災篇 -->
     <button class="book-card" onclick="openBook('fire')">
       <div class="cover-frame">
         <img src="fire/cover.jpg.jpg" alt="火災篇封面">
@@ -311,7 +309,6 @@ button {
       <span class="open-btn">開始閱讀</span>
     </button>
 
-    <!-- 颱風篇 -->
     <button class="book-card" onclick="openBook('typhoon')">
       <div class="cover-frame">
         <img src="typhoon/cover.jpg.jpg" alt="颱風篇封面">
@@ -375,6 +372,9 @@ let currentBookKey = null;
 let currentPage = 0;
 let pages = [];
 
+/* 預先載入的影片 */
+const preloadedVideos = new Map();
+
 const home = document.getElementById("home");
 const reader = document.getElementById("reader");
 const media = document.getElementById("media");
@@ -413,8 +413,84 @@ function makePages(folder) {
   return result;
 }
 
+/* 判斷是否為颱風篇封底 */
+function isSilentPage(index) {
+  return (
+    currentBookKey === "typhoon" &&
+    pages[index] &&
+    pages[index].src === "typhoon/backcover.mp4.mp4"
+  );
+}
+
+/* 預先載入指定頁面的影片 */
+function preloadVideo(index) {
+
+  if (index < 0 || index >= pages.length) return;
+
+  const page = pages[index];
+
+  if (page.type !== "video") return;
+
+  if (preloadedVideos.has(page.src)) return;
+
+  const video = document.createElement("video");
+
+  video.preload = "auto";
+  video.playsInline = true;
+  video.muted = isSilentPage(index);
+  video.defaultMuted = isSilentPage(index);
+
+  video.src = page.src;
+  video.load();
+
+  preloadedVideos.set(page.src, video);
+}
+
+/* 預先載入前後頁 */
+function preloadNearbyPages() {
+
+  preloadVideo(currentPage + 1);
+  preloadVideo(currentPage - 1);
+
+  /* 如果下一頁是圖片，也先載入 */
+  const nextIndex = currentPage + 1;
+
+  if (
+    nextIndex < pages.length &&
+    pages[nextIndex].type === "image"
+  ) {
+    const img = new Image();
+    img.src = pages[nextIndex].src;
+  }
+
+  /* 如果上一頁是圖片，也先載入 */
+  const previousIndex = currentPage - 1;
+
+  if (
+    previousIndex >= 0 &&
+    pages[previousIndex].type === "image"
+  ) {
+    const img = new Image();
+    img.src = pages[previousIndex].src;
+  }
+}
+
+/* 清除預載影片 */
+function clearPreloadedVideos() {
+
+  preloadedVideos.forEach((video) => {
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+  });
+
+  preloadedVideos.clear();
+}
+
 /* 開啟繪本 */
 function openBook(bookKey) {
+
+  clearPreloadedVideos();
 
   currentBookKey = bookKey;
   currentBook = books[bookKey];
@@ -450,28 +526,39 @@ function renderPage() {
 
   if (page.type === "video") {
 
-    const video = document.createElement("video");
+    /* 優先使用已經預載的影片 */
+    let video = preloadedVideos.get(page.src);
 
-    /* 判斷是否為颱風篇封底 */
-const isTyphoonBackcover =
-  currentBookKey === "typhoon" &&
-  page.src === "typhoon/backcover.mp4.mp4";
+    if (video) {
+      preloadedVideos.delete(page.src);
+    } else {
+      video = document.createElement("video");
+    }
 
-/* 先設定靜音，再載入影片 */
-video.muted = isTyphoonBackcover;
-video.defaultMuted = isTyphoonBackcover;
-video.volume = isTyphoonBackcover ? 0 : 1;
+    const isTyphoonBackcover = isSilentPage(currentPage);
 
-if (isTyphoonBackcover) {
-  video.setAttribute("muted", "");
-}
+    /* 設定影片播放屬性 */
+    video.muted = isTyphoonBackcover;
+    video.defaultMuted = isTyphoonBackcover;
+    video.volume = isTyphoonBackcover ? 0 : 1;
 
-video.src = page.src;
-video.autoplay = true;
-video.playsInline = true;
-video.preload = "metadata";
-video.controls = false;
-video.loop = false;
+    if (isTyphoonBackcover) {
+      video.setAttribute("muted", "");
+    } else {
+      video.removeAttribute("muted");
+    }
+
+    video.autoplay = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.controls = false;
+    video.loop = false;
+
+    /* 確保影片使用正確的檔案 */
+    if (video.getAttribute("src") !== page.src) {
+      video.src = page.src;
+      video.load();
+    }
 
     video.addEventListener("error", () => {
       showMessage("影片載入失敗，請檢查檔案名稱");
@@ -510,6 +597,9 @@ video.loop = false;
 
     media.appendChild(img);
   }
+
+  /* 顯示目前頁面後，背景預載前後頁 */
+  preloadNearbyPages();
 }
 
 /* 顯示提示 */
@@ -543,6 +633,8 @@ function goHome() {
   }
 
   media.innerHTML = "";
+
+  clearPreloadedVideos();
 
   reader.style.display = "none";
   home.style.display = "block";
