@@ -1,1 +1,485 @@
 
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>哇仔｜互動式電子繪本</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Noto Sans TC", sans-serif;
+  background: #f8f5ed;
+  color: #354b3c;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+.home {
+  min-height: 100vh;
+  padding: 35px 20px 50px;
+  text-align: center;
+}
+
+.logo {
+  width: 150px;
+  max-width: 45%;
+  object-fit: contain;
+  margin: 10px auto 20px;
+}
+
+.home h1 {
+  font-size: 27px;
+  margin: 5px 0;
+}
+
+.subtitle {
+  color: #888;
+  margin: 10px 0 35px;
+}
+
+.books {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 25px;
+  max-width: 1050px;
+  margin: auto;
+}
+
+.book-card {
+  width: 280px;
+  max-width: 100%;
+  background: white;
+  border-radius: 18px;
+  padding: 13px;
+  box-shadow: 0 5px 18px #00000012;
+  transition: transform .2s;
+}
+
+.book-card:active {
+  transform: scale(.97);
+}
+
+.book-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.book-card h2 {
+  font-size: 19px;
+  margin: 15px 0 5px;
+}
+
+.book-card p {
+  color: #888;
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.open-btn {
+  background: #526d59;
+  color: white;
+  border-radius: 25px;
+  padding: 9px 25px;
+  margin: 10px 0 5px;
+}
+
+.reader {
+  display: none;
+  min-height: 100vh;
+  background: #202521;
+  color: white;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.reader-top {
+  width: min(100%, 1100px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0 12px;
+}
+
+.reader-top button {
+  background: #ffffff20;
+  color: white;
+  border-radius: 20px;
+  padding: 9px 16px;
+}
+
+.book-title {
+  font-size: 15px;
+  text-align: center;
+}
+
+.stage {
+  position: relative;
+  width: min(100%, 1100px);
+  aspect-ratio: 16 / 9;
+  background: #111;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: pan-y;
+}
+
+.stage video,
+.stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.page-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12%;
+  background: transparent;
+  color: #ffffff00;
+  z-index: 2;
+}
+
+.page-nav.left {
+  left: 0;
+}
+
+.page-nav.right {
+  right: 0;
+}
+
+.page-nav:active {
+  background: #ffffff12;
+}
+
+.page-info {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.message {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 15px;
+  transform: translateX(-50%);
+  background: #000b;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  display: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .home {
+    padding-top: 25px;
+  }
+
+  .books {
+    gap: 18px;
+  }
+
+  .book-card {
+    width: min(100%, 340px);
+  }
+
+  .reader {
+    padding: 8px;
+  }
+
+  .reader-top button {
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+
+  .book-title {
+    font-size: 13px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- 首頁 -->
+<section class="home" id="home">
+  <img class="logo" src="logo.png.png" alt="哇仔 LOGO">
+
+  <h1>互動式電子繪本</h1>
+  <p class="subtitle">跟著哇仔一起學習防災知識！</p>
+
+  <div class="books">
+
+    <button class="book-card" onclick="openBook('earthquake')">
+      <img src="earthquake/cover.jpg.jpg" alt="地震篇封面">
+      <h2>地震篇</h2>
+      <p>搖搖晃晃我不慌</p>
+      <span class="open-btn">開始閱讀</span>
+    </button>
+
+    <button class="book-card" onclick="openBook('fire')">
+      <img src="fire/cover.jpg.jpg" alt="火災篇封面">
+      <h2>火災篇</h2>
+      <p>有霧有煙 我不亂</p>
+      <span class="open-btn">開始閱讀</span>
+    </button>
+
+    <button class="book-card" onclick="openBook('typhoon')">
+      <img src="typhoon/cover.jpg.jpg" alt="颱風篇封面">
+      <h2>颱風篇</h2>
+      <p>風大雨大 我不怕</p>
+      <span class="open-btn">開始閱讀</span>
+    </button>
+
+  </div>
+</section>
+
+<!-- 繪本閱讀畫面 -->
+<section class="reader" id="reader">
+
+  <div class="reader-top">
+    <button onclick="goHome()">← 返回首頁</button>
+    <div class="book-title" id="bookTitle"></div>
+    <button onclick="toggleFullscreen()">⛶ 全螢幕</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div id="media"></div>
+
+    <button class="page-nav left" onclick="changePage(-1)" aria-label="上一頁"></button>
+    <button class="page-nav right" onclick="changePage(1)" aria-label="下一頁"></button>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <div class="page-info" id="pageInfo"></div>
+
+</section>
+
+<script>
+const books = {
+  earthquake: {
+    title: "地震篇｜搖搖晃晃我不慌",
+    folder: "earthquake"
+  },
+  fire: {
+    title: "火災篇｜有霧有煙 我不亂",
+    folder: "fire"
+  },
+  typhoon: {
+    title: "颱風篇｜風大雨大 我不怕",
+    folder: "typhoon"
+  }
+};
+
+let currentBook = null;
+let currentPage = 0;
+let pages = [];
+
+const home = document.getElementById("home");
+const reader = document.getElementById("reader");
+const media = document.getElementById("media");
+const stage = document.getElementById("stage");
+const pageInfo = document.getElementById("pageInfo");
+const bookTitle = document.getElementById("bookTitle");
+const message = document.getElementById("message");
+
+function makePages(folder) {
+  const result = [];
+
+  result.push({
+    type: "video",
+    src: `${folder}/cover.mp4.mp4`
+  });
+
+  for (let i = 1; i <= 15; i++) {
+    result.push({
+      type: "video",
+      src: `${folder}/page${i}.mp4.mp4`
+    });
+  }
+
+  result.push({
+    type: "image",
+    src: `${folder}/page16.jpg.jpg`
+  });
+
+  result.push({
+    type: "video",
+    src: `${folder}/backcover.mp4.mp4`
+  });
+
+  return result;
+}
+
+function openBook(bookKey) {
+  currentBook = books[bookKey];
+  currentPage = 0;
+  pages = makePages(currentBook.folder);
+
+  home.style.display = "none";
+  reader.style.display = "flex";
+
+  bookTitle.textContent = currentBook.title;
+
+  renderPage();
+}
+
+function renderPage() {
+  media.innerHTML = "";
+  message.style.display = "none";
+
+  const page = pages[currentPage];
+
+  pageInfo.textContent =
+    `第 ${currentPage + 1} / ${pages.length} 頁`;
+
+  if (page.type === "video") {
+    const video = document.createElement("video");
+
+    video.src = page.src;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+    video.controls = false;
+    video.loop = false;
+
+    video.addEventListener("error", () => {
+      showMessage("影片載入失敗，請檢查檔案名稱或重新整理");
+    });
+
+    video.addEventListener("click", (event) => {
+      event.stopPropagation();
+
+      if (video.paused) {
+        video.play().catch(() => {
+          showMessage("影片無法播放，請再點一次");
+        });
+      } else {
+        video.pause();
+      }
+    });
+
+    media.appendChild(video);
+
+    video.play().catch(() => {
+      showMessage("如果影片沒有自動播放，請點擊影片");
+    });
+
+  } else {
+    const img = document.createElement("img");
+    img.src = page.src;
+    img.alt = "繪本版權頁";
+
+    img.addEventListener("error", () => {
+      showMessage("圖片載入失敗，請檢查檔案名稱");
+    });
+
+    media.appendChild(img);
+  }
+}
+
+function showMessage(text) {
+  message.textContent = text;
+  message.style.display = "block";
+}
+
+function changePage(direction) {
+  const next = currentPage + direction;
+
+  if (next < 0 || next >= pages.length) {
+    return;
+  }
+
+  currentPage = next;
+  renderPage();
+}
+
+function goHome() {
+  const video = media.querySelector("video");
+
+  if (video) {
+    video.pause();
+  }
+
+  media.innerHTML = "";
+  reader.style.display = "none";
+  home.style.display = "block";
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await reader.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    showMessage("目前瀏覽器不支援全螢幕");
+  }
+}
+
+// 手機左右滑動翻頁
+let touchStartX = 0;
+let touchStartY = 0;
+
+stage.addEventListener("touchstart", (event) => {
+  touchStartX = event.changedTouches[0].screenX;
+  touchStartY = event.changedTouches[0].screenY;
+}, { passive: true });
+
+stage.addEventListener("touchend", (event) => {
+  const endX = event.changedTouches[0].screenX;
+  const endY = event.changedTouches[0].screenY;
+
+  const diffX = endX - touchStartX;
+  const diffY = endY - touchStartY;
+
+  if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+    changePage(diffX < 0 ? 1 : -1);
+  }
+}, { passive: true });
+
+// 電腦鍵盤左右方向鍵
+document.addEventListener("keydown", (event) => {
+  if (reader.style.display !== "flex") return;
+
+  if (event.key === "ArrowRight") {
+    changePage(1);
+  }
+
+  if (event.key === "ArrowLeft") {
+    changePage(-1);
+  }
+
+  if (event.key === "Escape" && !document.fullscreenElement) {
+    goHome();
+  }
+});
+</script>
+
+</body>
+</html>
+
