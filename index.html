@@ -84,7 +84,6 @@ button {
   transform: scale(.98);
 }
 
-/* 封面專用正方形容器 */
 .cover-frame {
   position: relative;
   display: block;
@@ -96,7 +95,6 @@ button {
   border-radius: 12px;
 }
 
-/* 封面圖片完整顯示 */
 .cover-frame img {
   position: absolute;
   inset: 0;
@@ -107,7 +105,6 @@ button {
   object-position: center;
 }
 
-/* 書名 */
 .book-card h2 {
   display: block;
   flex: 0 0 auto;
@@ -116,7 +113,6 @@ button {
   line-height: 1.5;
 }
 
-/* 繪本介紹 */
 .book-card p {
   display: block;
   flex: 0 0 auto;
@@ -126,7 +122,6 @@ button {
   line-height: 1.5;
 }
 
-/* 開始閱讀按鈕 */
 .open-btn {
   display: inline-block;
   align-self: center;
@@ -263,7 +258,6 @@ button {
     max-width: 340px;
   }
 
-  /* 正方形封面寬高永遠一致 */
   .cover-frame {
     width: 100%;
     aspect-ratio: 1 / 1;
@@ -377,6 +371,7 @@ const books = {
 };
 
 let currentBook = null;
+let currentBookKey = null;
 let currentPage = 0;
 let pages = [];
 
@@ -421,6 +416,7 @@ function makePages(folder) {
 /* 開啟繪本 */
 function openBook(bookKey) {
 
+  currentBookKey = bookKey;
   currentBook = books[bookKey];
   currentPage = 0;
   pages = makePages(currentBook.folder);
@@ -435,6 +431,14 @@ function openBook(bookKey) {
 
 /* 顯示目前頁面 */
 function renderPage() {
+
+  const oldVideo = media.querySelector("video");
+
+  if (oldVideo) {
+    oldVideo.pause();
+    oldVideo.removeAttribute("src");
+    oldVideo.load();
+  }
 
   media.innerHTML = "";
   message.style.display = "none";
@@ -454,6 +458,12 @@ function renderPage() {
     video.preload = "metadata";
     video.controls = false;
     video.loop = false;
+
+    /* 只有颱風篇封底靜音 */
+    video.muted = (
+      currentBookKey === "typhoon" &&
+      currentPage === 17
+    );
 
     video.addEventListener("error", () => {
       showMessage("影片載入失敗，請檢查檔案名稱");
@@ -520,6 +530,8 @@ function goHome() {
 
   if (video) {
     video.pause();
+    video.removeAttribute("src");
+    video.load();
   }
 
   media.innerHTML = "";
