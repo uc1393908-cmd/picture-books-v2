@@ -452,18 +452,26 @@ function renderPage() {
 
     const video = document.createElement("video");
 
-    video.src = page.src;
-    video.autoplay = true;
-    video.playsInline = true;
-    video.preload = "metadata";
-    video.controls = false;
-    video.loop = false;
+    /* 判斷是否為颱風篇封底 */
+const isTyphoonBackcover =
+  currentBookKey === "typhoon" &&
+  page.src === "typhoon/backcover.mp4.mp4";
 
-    /* 只有颱風篇封底靜音 */
-    video.muted = (
-      currentBookKey === "typhoon" &&
-      currentPage === 17
-    );
+/* 先設定靜音，再載入影片 */
+video.muted = isTyphoonBackcover;
+video.defaultMuted = isTyphoonBackcover;
+video.volume = isTyphoonBackcover ? 0 : 1;
+
+if (isTyphoonBackcover) {
+  video.setAttribute("muted", "");
+}
+
+video.src = page.src;
+video.autoplay = true;
+video.playsInline = true;
+video.preload = "metadata";
+video.controls = false;
+video.loop = false;
 
     video.addEventListener("error", () => {
       showMessage("影片載入失敗，請檢查檔案名稱");
